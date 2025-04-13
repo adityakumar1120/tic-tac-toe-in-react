@@ -16,10 +16,16 @@ export default function Board() {
         ]
       })
 
-      const [score , setScore] = useState({
-        x : 0,
-        o : 0, 
-        draw : 0
+      const [score , setScore] = useState(()=>{
+        const localVal = JSON.parse(localStorage.getItem('score'))
+        if(localVal){
+          return localVal
+        } 
+        return {
+          x : 0,
+          o : 0, 
+          draw : 0
+        }
       })
       const [history , setHistory] = useState(()=>{
         const  localVal = JSON.parse(localStorage.getItem('history'))
@@ -30,41 +36,45 @@ export default function Board() {
       })
       const [historyIndex , setHistoryIndex] = useState(()=>{
         if(history.length){
-          return history.length-1
+          return history.length
         } 
         return 0
       })
       const [isChanging ,  setIsChanging] = useState(true)
-
+      const [error , setError] = useState('')
       const changeBoard = (e)=>{
         const x = parseInt(e.target.dataset.x)
         const y = parseInt(e.target.dataset.y)
-       if(winner === null){ // only allow to play if there is no winner
-        setIsChanging(true)
-        setGameBoard(prev => { //updating the gameBoard on every click
-          return prev.map((row , rowIndex) =>{
-              if(x === rowIndex){
-                 return row.map((col , colIndex)=>{
-                      if( y === colIndex){
-                          if(prev[x][y] === ""){
-                            if(history.length){
-                              setHistoryIndex(history.length-1)  //setting the history index when i new move is made
+       if(isChanging){
+        if(winner === null){ // only allow to play if there is no winner
+          setGameBoard(prev => { //updating the gameBoard on every click
+            return prev.map((row , rowIndex) =>{
+                if(x === rowIndex){
+                   return row.map((col , colIndex)=>{
+                        if( y === colIndex){
+                            if(prev[x][y] === ""){
+                              if(history.length){
+                                setHistoryIndex(history.length)  //setting the history index when i new move is made
+                              }
+                                return turn === 'x' ? 'x' : '0'
                             }
-                              return turn === 'x' ? 'x' : '0'
-                          }
-                          return col
-                      }
-                      return col
-                  })
-              }
-              return row
-          })
-      })
+                            return col
+                        }
+                        return col
+                    })
+                }
+                return row
+            })
+        })
+       } 
      if(gameBoard[x][y] === ''){
       setTurn(prev => {
         return prev === 'x' ? '0' : 'x' //changing turn after every round
     })
      }
+       } else {
+        setError(`
+          You're in history view. To make changes, please redo all steps to reach the current game state.`)
        }
         
       }
@@ -84,6 +94,23 @@ export default function Board() {
       useEffect(()=>{
         localStorage.setItem('history' , JSON.stringify(history))
       }, [history])
+      useEffect(()=>{
+        
+        if(isChanging === false){
+          console.log('change index');
+          if(history.length){
+          setGameBoard(history[historyIndex])
+          }
+          console.log('change index');
+        }
+        if(history.length === historyIndex + 1){
+          setIsChanging(true)
+          setError('')
+        }
+      }, [historyIndex])
+      useEffect(()=>{
+        localStorage.setItem('score' , JSON.stringify(score))
+      }, [score])
       const checkWin = (board)=>{
         let win = null
         const cols = [
@@ -178,31 +205,35 @@ export default function Board() {
         }
         // win === 'x' ? setScore(prev => ({...prev , x : x++})) : ''
       }
-      useEffect(()=>{
-        if(isChanging === false){
-          console.log(historyIndex);
-          setGameBoard(history[historyIndex])
-        }
-        setIsChanging(false)
-      }, [historyIndex])
+    
 
 
       const handleUndo = ()=>{
-       if(historyIndex > 0){
-          setHistoryIndex(prev => {
-            console.log(prev);
-            return prev-1
-          })
+       if(winner === null){
+        if(historyIndex > 0){
+          console.log(historyIndex);
+            setHistoryIndex(prev => {
+              console.log(prev);
+              return prev-1
+            })
+            setIsChanging(false)
+       }
           // setGameBoard(history[historyIndex]) this will cause step back render issue
         }
         
       }
       const handleRedo = ()=>{
     
+       if(winner === null){
         if(history.length-1 > historyIndex){
-          setHistoryIndex(prev => prev+1)
+          setHistoryIndex(prev => {
+            // console.log(prev);
+            return prev+1
+          })
+          setIsChanging(false)
           // setGameBoard(history[historyIndex]) this will cause step back render issue
         }
+       }
         
       }
   return (
@@ -227,6 +258,8 @@ export default function Board() {
     {winner && <button className='bg-[#3291ea] w-fit mx-auto mt-4 rounded text-2xl text-white py-1 px-2 transition-all block'
     onClick={startNewGame}
     >New Game</button>}
+    <p className='text-red-400 text-center mt-6'>{error}</p>
+
    </div>
   )
 }

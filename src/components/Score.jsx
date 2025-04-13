@@ -3,7 +3,7 @@ import React from 'react'
 export default function Score({score , turn}) {
   return (
     <div>
-        <div className='flex justify-between text-3xl'>
+        <div className='flex justify-between text-xl md:text-3xl'>
         <p>x score {score.x}</p>
         <p>draw {score.draw}</p>
         <p>o score {score.o}</p>
